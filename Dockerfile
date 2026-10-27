@@ -7,4 +7,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["sh", "-c", "python bot.py"]
+# Use Render's dynamic port environment variable
+CMD uvicorn bot:app --host 0.0.0.0 --port ${PORT:-10000}
