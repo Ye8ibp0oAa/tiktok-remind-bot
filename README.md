@@ -1,1 +1,0 @@
-# tiktok-remind-bot
