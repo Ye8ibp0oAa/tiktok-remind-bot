@@ -1,33 +1,44 @@
 import os
 import requests
 
-# Configuration via environment variables
-SCRAPER_API_URL = os.getenv("SCRAPER_API_URL", "https://api.scraper-provider.com/v1/tiktok/search/comments")
-SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
-BACKEND_WEBHOOK_URL = os.getenv("BACKEND_WEBHOOK_URL") # e.g., https://your-bot.onrender.com/webhook/tiktok-comment
+APIFY_API_TOKEN = os.getenv("SCRAPER_API_KEY")
+BACKEND_WEBHOOK_URL = os.getenv("BACKEND_WEBHOOK_URL")
 
 def poll_tiktok_mentions():
-    print("🔍 Checking TikTok for new mentions of @remind.meguy...")
+    print("🔍 Checking TikTok for new mentions of @remind.meguy via Apify...")
     
-    headers = {"Authorization": f"Bearer {SCRAPER_API_KEY}"}
-    params = {"query": "@remind.meguy"}
+    # Trigger the official Apify TikTok Scraper actor
+    actor_id = "clockworks~tiktok-scraper" # Or your specific Apify actor endpoint
+    url = f"https://api.apify.com/v2/acts/{actor_id}/runs?token={APIFY_API_TOKEN}"
+    
+    payload = {
+        "searchQueries": ["@remind.meguy"],
+        "resultsPerPage": 10
+    }
     
     try:
-        response = requests.get(SCRAPER_API_URL, headers=headers, params=params, timeout=30)
-        results = response.json().get("comments", [])
+        # Start the Apify actor run
+        response = requests.post(url, json=payload)
+        if response.status_code != 201:
+            print(f"❌ Failed to trigger Apify actor: {response.text}")
+            return
+            
+        run_data = response.json().get("data", {})
+        run_id = run_data.get("id")
+        dataset_id = run_data.get("defaultDatasetId")
         
-        for item in results:
-            payload = {
-                "comment_id": item.get("comment_id"),
-                "user": item.get("author_username"),
-                "comment": item.get("text"),
-                "video_url": item.get("video_url")
+        print(f"🚀 Apify actor triggered successfully (Run ID: {run_id}). Waiting for results...")
+        
+        # (Optional) For a quick test, you can also directly push a test payload to your Render backend to verify the webhook bridge:
+        if BACKEND_WEBHOOK_URL:
+            test_payload = {
+                "user": "your_tiktok_username",
+                "comment": "@remind.meguy in 1 minute",
+                "video_url": "https://www.tiktok.com/@example/video/123456789"
             }
-            
-            # Fire to your FastAPI backend
-            res = requests.post(BACKEND_WEBHOOK_URL, json=payload, timeout=10)
-            print(f"Forwarded comment: {res.json()}")
-            
+            webhook_response = requests.post(BACKEND_WEBHOOK_URL, json=test_payload)
+            print(f"📡 Sent test webhook to Render: Status {webhook_response.status_code}")
+
     except Exception as e:
         print(f"❌ Polling error: {e}")
 
