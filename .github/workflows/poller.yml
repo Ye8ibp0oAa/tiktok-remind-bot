@@ -1,15 +1,15 @@
 name: TikTok Mention Poller
 
 on:
+  workflow_dispatch:
   schedule:
-    - cron: '*/5 * * * *' # Runs every 5 minutes
-  workflow_dispatch: # Allows manual run button in GitHub
+    - cron: '*/5 * * * *'
 
 jobs:
   run-poller:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run poller script
+      - name: Run poller
         env:
           SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
           BACKEND_WEBHOOK_URL: ${{ secrets.BACKEND_WEBHOOK_URL }}
