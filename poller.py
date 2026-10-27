@@ -8,7 +8,7 @@ def poll_tiktok_mentions():
     print("🔍 Checking TikTok for new mentions of @remind.meguy via Apify...")
     
     # Trigger the official Apify TikTok Scraper actor
-    actor_id = "clockworks~tiktok-scraper" # Or your specific Apify actor endpoint
+    actor_id = "clockworks~tiktok-scraper"
     url = f"https://api.apify.com/v2/acts/{actor_id}/runs?token={APIFY_API_TOKEN}"
     
     payload = {
@@ -25,19 +25,24 @@ def poll_tiktok_mentions():
             
         run_data = response.json().get("data", {})
         run_id = run_data.get("id")
-        dataset_id = run_data.get("defaultDatasetId")
         
-        print(f"🚀 Apify actor triggered successfully (Run ID: {run_id}). Waiting for results...")
+        print(f"🚀 Apify actor triggered successfully (Run ID: {run_id}).")
         
-        # (Optional) For a quick test, you can also directly push a test payload to your Render backend to verify the webhook bridge:
+        # Send test webhook to Render with guaranteed correct path alignment
         if BACKEND_WEBHOOK_URL:
+            base_url = BACKEND_WEBHOOK_URL.rstrip("/")
+            if not base_url.endswith("/webhook/tiktok-comment"):
+                webhook_url = f"{base_url}/webhook/tiktok-comment"
+            else:
+                webhook_url = base_url
+
             test_payload = {
                 "user": "your_tiktok_username",
                 "comment": "@remind.meguy in 1 minute",
                 "video_url": "https://www.tiktok.com/@example/video/123456789"
             }
-            webhook_response = requests.post(BACKEND_WEBHOOK_URL, json=test_payload)
-            print(f"📡 Sent test webhook to Render: Status {webhook_response.status_code}")
+            webhook_response = requests.post(webhook_url, json=test_payload)
+            print(f"📡 Sent test webhook to {webhook_url}: Status {webhook_response.status_code}")
 
     except Exception as e:
         print(f"❌ Polling error: {e}")
