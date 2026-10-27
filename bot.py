@@ -5,7 +5,6 @@ import dateparser
 from fastapi import FastAPI, Request
 import discord
 from discord.ext import commands
-import uvicorn
 
 app = FastAPI()
 
@@ -17,6 +16,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Simple in-memory user mapping: {"tiktok_handle": "discord_user_id"}
 USER_MAPPINGS = {}
+
+@app.on_event("startup")
+async def startup_event():
+    # Automatically start the Discord bot in the background when FastAPI boots up
+    asyncio.create_task(bot.start(DISCORD_BOT_TOKEN))
 
 @bot.tree.command(name="register", description="Link your TikTok handle to receive reminder DMs here")
 async def register(interaction: discord.Interaction, tiktok_handle: str):
@@ -87,12 +91,3 @@ async def schedule_discord_dm(delay: int, discord_id: str, tiktok_user: str, vid
         print(f"✅ Reminder delivered to Discord user: {discord_id}")
     except Exception as e:
         print(f"❌ Failed to send Discord DM: {e}")
-
-if __name__ == "__main__":
-    config = uvicorn.Config(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)), log_level="info")
-    server = uvicorn.Server(config)
-
-    loop = asyncio.get_event_loop()
-    loop.create_task(bot.start(DISCORD_BOT_TOKEN))
-    loop.run_until_complete(server.serve())
-    
